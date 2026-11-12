@@ -1,0 +1,47 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract game
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          mkdir -p /tmp/svo-project
+          unzip -q SVO-2D-MIR-v1.6-playable-build.zip -d /tmp/svo-project
+          cp -a /tmp/svo-project/android ./android
+          cp -a /tmp/svo-project/web ./web
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build APK
+        working-directory: android
+        run: gradle --no-daemon assembleDebug assembleRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SVO-2D-MIR-Android-APKs
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
